@@ -1,0 +1,11 @@
+{
+    "id": "grooveshark",
+    "name": "Grooveshark",
+    "maintainer_name": "Jiří Janoušek",
+    "maintainer_link": "https://github.com/fenryxo",
+    "version_major": 4,
+    "version_minor": 0,
+    "api_major": 3,
+    "api_minor": 0,
+    "categories": "AudioVideo;Audio;"
+}
