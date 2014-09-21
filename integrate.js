@@ -22,6 +22,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * TODO: Love song action.
+ * TODO: Rate song action.
+ */
+ 
 "use strict";
 
 (function(Nuvola)
@@ -56,29 +61,95 @@ WebApp._onPageReady = function()
     Nuvola.actions.connect("ActionActivated", this);
 
     // Start update routine
-    this.update();
+    this.timeout = setInterval(this._setCallback.bind(this), 100);
 }
 
-// Extract data from the web page
-WebApp.update = function()
+    
+/* Set callback function for GrooveShark JS API */
+WebApp._setCallback = function()
 {
-    var track = {
-        title: null,
-        artist: null,
-        album: null,
-        artLocation: null
+    try
+    {
+        window.Grooveshark.setSongStatusCallback(this.update.bind(this));
+        clearInterval(this.timeout); // done!
+        this.update();
     }
-
+    catch (e)
+    {
+        // Grooveshark API is probably not finished yet
+    }
+}
+    
+// Extract data from the web page
+WebApp.update = function(currentSong)
+{
+    if (!currentSong)
+    {
+        try
+        {
+            currentSong = window.Grooveshark.getCurrentSongStatus();
+        }
+        catch(e)
+        {
+            console.log(e.message);
+        }
+    }
+    
+    if (!currentSong)
+        return;
+    
+    var song = currentSong.song;
+    var track = {
+        title: song.songName || null,
+        artist: song.artistName ||null,
+        album: song.albumName || null,
+        artLocation: song.artURL || null
+    }
     player.setTrack(track);
-    player.setPlaybackState(PlaybackState.UNKNOWN);
-
-    // Schedule the next update
-    setTimeout(this.update.bind(this), 500);
+   
+    var status = currentSong.status;
+    if (status === "playing" || status === "buffering")
+        this.state = PlaybackState.PLAYING;
+    else if (status === "paused" || song)
+        this.state = PlaybackState.PAUSED;
+    else
+        this.state = PlaybackState.UNKNOWN;
+    player.setPlaybackState(this.state);
+    
+    var elm;
+    elm = document.getElementById("play-prev");
+    player.setCanGoPrev(elm ? elm.className.indexOf("disabled") < 0 : false);
+    elm = document.getElementById("play-next");
+    player.setCanGoNext(elm ? elm.className.indexOf("disabled") < 0 : false);
+    player.setCanPlay(this.state === PlaybackState.PAUSED);
+    player.setCanPause(this.state === PlaybackState.PLAYING);
 }
 
 // Handler of playback actions
 WebApp._onActionActivated = function(emitter, name, param)
 {
+    switch (name)
+    {
+    case PlayerAction.TOGGLE_PLAY:
+        if (this.state !== PlaybackState.PLAYING)
+            window.Grooveshark.play();
+        else
+            window.Grooveshark.togglePlayPause();
+        break;
+    case PlayerAction.PLAY:
+        window.Grooveshark.play();
+        break;
+    case PlayerAction.PAUSE:
+    case PlayerAction.STOP:
+        window.Grooveshark.pause();
+        break;
+    case PlayerAction.PREV_SONG:
+        window.Grooveshark.previous();
+        break;
+    case PlayerAction.NEXT_SONG:
+        window.Grooveshark.next();
+        break;
+    }
 }
 
 WebApp.start();
