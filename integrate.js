@@ -46,7 +46,20 @@ var WebApp = Nuvola.$WebApp();
 WebApp._onInitWebWorker = function(emitter)
 {
     Nuvola.WebApp._onInitWebWorker.call(this, emitter);
-
+    
+    var track = {
+        title: null,
+        artist: null,
+        album: null,
+        artLocation: null
+    }
+    player.setTrack(track);
+    player.setPlaybackState(PlaybackState.UNKNOWN);
+    player.setCanGoPrev( false);
+    player.setCanGoNext( false);
+    player.setCanPlay(false);
+    player.setCanPause(false);
+    
     var state = document.readyState;
     if (state === "interactive" || state === "complete")
         this._onPageReady();
@@ -57,6 +70,7 @@ WebApp._onInitWebWorker = function(emitter)
 // Page is ready for magic
 WebApp._onPageReady = function()
 {
+    this.groovesharkRetro = location.hostname == "retro.grooveshark.com";
     // Connect handler for signal ActionActivated
     Nuvola.actions.connect("ActionActivated", this);
 
@@ -85,7 +99,10 @@ WebApp.update = function(currentSong)
 {
     if (!currentSong)
     {
-        try
+        if (!this.groovesharkRetro)
+	    setTimeout(this.update.bind(this), 250);
+	
+	try
         {
             currentSong = window.Grooveshark.getCurrentSongStatus();
         }
@@ -95,7 +112,7 @@ WebApp.update = function(currentSong)
         }
     }
     
-    if (!currentSong)
+    if (!currentSong || !currentSong.song)
         return;
     
     var song = currentSong.song;
@@ -106,17 +123,27 @@ WebApp.update = function(currentSong)
         artLocation: song.artURL || null
     }
     player.setTrack(track);
-   
-    var status = currentSong.status;
-    if (status === "playing" || status === "buffering")
-        this.state = PlaybackState.PLAYING;
-    else if (status === "paused" || song)
-        this.state = PlaybackState.PAUSED;
-    else
-        this.state = PlaybackState.UNKNOWN;
-    player.setPlaybackState(this.state);
     
     var elm;
+    if (!this.groovesharkRetro)
+    {
+	elm = document.getElementById("play-pause");
+	this.state = !elm ? PlaybackState.UNKNOWN : (
+	    elm.className.indexOf("playing") >= 0 ? PlaybackState.PLAYING : PlaybackState.PAUSED);
+    }
+    else
+    {
+	var status = currentSong.status;
+	if (status === "playing" || status === "buffering")
+	    this.state = PlaybackState.PLAYING;
+	else if (status === "paused" || song)
+	    this.state = PlaybackState.PAUSED;
+	else
+	    this.state = PlaybackState.UNKNOWN;
+    }
+    player.setPlaybackState(this.state);
+    
+    
     elm = document.getElementById("play-prev");
     player.setCanGoPrev(elm ? elm.className.indexOf("disabled") < 0 : false);
     elm = document.getElementById("play-next");
