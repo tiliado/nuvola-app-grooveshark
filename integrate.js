@@ -86,6 +86,12 @@ WebApp._setCallback = function()
     {
         window.Grooveshark.setSongStatusCallback(this.update.bind(this));
         clearInterval(this.timeout); // done!
+        var elm = document.getElementById("restore-queue");
+        if (elm)
+        {
+            player.setCanPlay(true);
+            player.setPlaybackState(PlaybackState.PAUSED);
+        }
         this.update();
     }
     catch (e)
@@ -100,9 +106,9 @@ WebApp.update = function(currentSong)
     if (!currentSong)
     {
         if (!this.groovesharkRetro)
-	    setTimeout(this.update.bind(this), 250);
-	
-	try
+            setTimeout(this.update.bind(this), 250);
+        
+        try
         {
             currentSong = window.Grooveshark.getCurrentSongStatus();
         }
@@ -127,19 +133,19 @@ WebApp.update = function(currentSong)
     var elm;
     if (!this.groovesharkRetro)
     {
-	elm = document.getElementById("play-pause");
-	this.state = !elm ? PlaybackState.UNKNOWN : (
-	    elm.className.indexOf("playing") >= 0 ? PlaybackState.PLAYING : PlaybackState.PAUSED);
+        elm = document.getElementById("play-pause");
+        this.state = !elm ? PlaybackState.UNKNOWN : (
+            elm.className.indexOf("playing") >= 0 ? PlaybackState.PLAYING : PlaybackState.PAUSED);
     }
     else
     {
-	var status = currentSong.status;
-	if (status === "playing" || status === "buffering")
-	    this.state = PlaybackState.PLAYING;
-	else if (status === "paused" || song)
-	    this.state = PlaybackState.PAUSED;
-	else
-	    this.state = PlaybackState.UNKNOWN;
+        var status = currentSong.status;
+        if (status === "playing" || status === "buffering")
+            this.state = PlaybackState.PLAYING;
+        else if (status === "paused" || song)
+            this.state = PlaybackState.PAUSED;
+        else
+            this.state = PlaybackState.UNKNOWN;
     }
     player.setPlaybackState(this.state);
     
@@ -152,19 +158,39 @@ WebApp.update = function(currentSong)
     player.setCanPause(this.state === PlaybackState.PLAYING);
 }
 
+WebApp.restoreQueue = function()
+{
+    var elm = document.getElementById("restore-queue");
+    console.log(elm);
+    if (elm)
+    {
+        Nuvola.clickOnElement(elm);
+        setTimeout(window.Grooveshark.play.bind(window.Grooveshark), 1000);
+        
+        this.restoreQueue = function(){return false;};
+        return true;
+    }
+    return false;
+}
+
 // Handler of playback actions
 WebApp._onActionActivated = function(emitter, name, param)
 {
+    
     switch (name)
     {
     case PlayerAction.TOGGLE_PLAY:
+        if (this.restoreQueue())
+            return;     
+        
         if (this.state !== PlaybackState.PLAYING)
             window.Grooveshark.play();
         else
             window.Grooveshark.togglePlayPause();
         break;
     case PlayerAction.PLAY:
-        window.Grooveshark.play();
+        if (!this.restoreQueue())
+            window.Grooveshark.play();
         break;
     case PlayerAction.PAUSE:
     case PlayerAction.STOP:
