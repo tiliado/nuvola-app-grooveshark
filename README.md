@@ -1,3 +1,7 @@
+**Note:** [Streaming Music Service Grooveshark Lost Its Court Battle and Has Closed For Good](http://www.forbes.com/sites/hughmcintyre/2015/05/01/streaming-music-service-grooveshark-lost-its-court-battle-and-closed-immediately/)
+
+---
+
 Grooveshark for Nuvola Player 3
 ===============================
 
